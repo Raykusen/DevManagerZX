@@ -1,0 +1,274 @@
+﻿@page "/"
+@using Authentication
+@using System.Security.Claims
+@inject IUserAccountService userAccountService
+@inject AuthenticationStateProvider authStateProvider
+
+<body>
+    <div form-container>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="card p-4" style="width: 25rem; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-person-check-fill text-primary" style="font-size: 64px;"></i>
+                        </div>
+                        <h2 class="mb-3 fw-bold text-uppercase">¡Bienvenido@@!</h2>
+                        <p class="lead mb-4">
+                            <i class="bi bi-person-badge me-2"></i>
+                            @context.User.FindFirstValue(ClaimTypes.GivenName)
+                        </p>
+                        <button type="button" class="btn btn-primary btn-lg w-100" @onclick="NavigateToHome">
+                            <i class="bi bi-house-door-fill me-2"></i>
+                            Ir al Inicio
+                        </button>
+                    </div>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="text">Acceso</div>
+
+                <form action="#">
+                    <div class="field">
+                        <input required type="text" class="input" @bind="model.UserName">
+                        <span class="span">
+                            <svg xml:space="preserve" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" height="20" width="20" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg"><g><path data-original="#000000" fill="#595959" d="M256 0c-74.439 0-135 60.561-135 135s60.561 135 135 135 135-60.561 135-135S330.439 0 256 0zM423.966 358.195C387.006 320.667 338.009 300 286 300h-60c-52.008 0-101.006 20.667-137.966 58.195C51.255 395.539 31 444.833 31 497c0 8.284 6.716 15 15 15h420c8.284 0 15-6.716 15-15 0-52.167-20.255-101.461-57.034-138.805z"></path></g></svg>
+                        </span>
+                        <label class="label">Correo electrónico</label>
+                    </div>
+
+                    <div class="field">
+                        <input required type="password" class="input" @bind="model.Password">
+                        <span class="span">
+                            <svg xml:space="preserve" style="enable-background:new 0 0 512 512" viewBox="0 0 512 512" height="20" width="20" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg"><g><path data-original="#000000" fill="#595959" d="M336 192h-16v-64C320 57.406 262.594 0 192 0S64 57.406 64 128v64H48c-26.453 0-48 21.523-48 48v224c0 26.477 21.547 48 48 48h288c26.453 0 48-21.523 48-48V240c0-26.477-21.547-48-48-48zm-229.332-64c0-47.063 38.27-85.332 85.332-85.332s85.332 38.27 85.332 85.332v64H106.668zm0 0"></path></g></svg>
+                        </span>
+                        <label class="label">Contraseña</label>
+                    </div>
+
+                    @* <div class="forgot-pass">
+                        <a href="#">¿Has olvidado tu contraseña?</a>
+                    </div> *@
+                    <button class="button" @onclick="Authenticate">Iniciar sesión</button>
+                    @* <div class="sign-up">
+                        ¿No eres miembro? <a href="#">Registrate ahora</a>
+                    </div> *@
+                </form>
+
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-warning mt-3" role="alert">
+                        <p class="text-dark text-center fw-bold text-uppercase">@mensajeError</p>
+                    </div>
+                }
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</body>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        @* display: flex; *@ 
+        justify-content: center;
+        align-items: center;
+        background: #dde1e7;
+    }
+
+    .content {
+        width: 100%;
+        min-height: 100vh;
+        padding: 40px 30px;
+        background: #dde1e7;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .form-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 40px 30px;
+        border-radius: 20px;
+        box-shadow: -3px -3px 7px #ffffff73, 2px 2px 5px rgba(94,104,121,0.288);
+    }
+
+    .content .text {
+        font-size: 33px;
+        font-weight: 600;
+        margin-bottom: 35px;
+        color: #595959;
+        text-align: center;
+    }
+
+    .field {
+        height: 50px;
+        width: 100%;
+        display: flex;
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+        .field .input {
+            height: 100%;
+            width: 100%;
+            padding-left: 45px;
+            outline: none;
+            border: none;
+            font-size: 18px;
+            background: #dde1e7;
+            color: #595959;
+            border-radius: 25px;
+            box-shadow: inset 2px 2px 5px #BABECC, inset -5px -5px 10px #ffffff73;
+        }
+
+            .field .input:focus {
+                box-shadow: inset 1px 1px 2px #BABECC, inset -1px -1px 2px #ffffff73;
+            }
+
+        .field .span {
+            position: absolute;
+            color: #595959;
+            width: 50px;
+            line-height: 55px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .field .label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 45px;
+            pointer-events: none;
+            color: #666666;
+            transition: 0.3s ease all;
+        }
+
+        .field .input:valid ~ label {
+            opacity: 0;
+        }
+
+    .forgot-pass {
+        text-align: left;
+        margin: 10px 0 20px 5px;
+    }
+
+        .forgot-pass a {
+            font-size: 16px;
+            color: #666666;
+            text-decoration: none;
+        }
+
+        .forgot-pass:hover a {
+            text-decoration: underline;
+        }
+
+    .button {
+        margin: 15px 0;
+        width: 100%;
+        height: 50px;
+        font-size: 18px;
+        font-weight: 600;
+        background: #dde1e7;
+        border-radius: 25px;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        color: #595959;
+        box-shadow: 2px 2px 5px #BABECC, -5px -5px 10px #ffffff73;
+        transition: 0.3s ease all;
+    }
+
+        .button:hover {
+            box-shadow: 1px 1px 3px #BABECC, -2px -2px 5px #ffffff73;
+        }
+
+        .button:focus {
+            color: #3498db;
+            box-shadow: inset 2px 2px 5px #BABECC, inset -5px -5px 10px #ffffff73;
+        }
+
+    .sign-up {
+        margin: 15px 0;
+        color: #595959;
+        font-size: 16px;
+        text-align: center;
+    }
+
+        .sign-up a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+            .sign-up a:hover {
+                text-decoration: underline;
+            }
+</style>
+
+@code {
+
+    private string mensajeError = "";
+    private LoginModel model = new LoginModel();
+
+    private class LoginModel
+    {
+        public string UserName { get; set; }
+        public string Password { get; set; }
+    }
+
+    private async Task Authenticate()
+    {
+        if (string.IsNullOrWhiteSpace(model.UserName) || string.IsNullOrWhiteSpace(model.Password))
+        {
+            mensajeError = "😒 Complete los campos patrón";
+        }
+        else
+        {
+            try 
+            {
+                var userAccount = userAccountService.GetByUserName(model.UserName);
+                if(userAccount == null || userAccount.PasswordHash != model.Password)
+                {
+                    mensajeError = "❌Credenciales incorrectas";
+                    return;
+                }
+
+                var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+                await customAuthStateProvider.UpdateAuthenticationState(new UserSession
+                {
+                    UserId = userAccount.UserID,
+                    UserName = userAccount.Email,
+                    Name = userAccount.FirstName + " " + userAccount.LastName,
+                    Role = userAccount.UserRole
+                });
+                mensajeError = string.Empty;
+                NavigationManager.NavigateTo("/Dashboard", true);
+            }
+            catch (Exception ex)
+            {
+                mensajeError = "Error al iniciar sesión: " + ex.Message;
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Llamada a CrearUsuarioAdmin antes de intentar autenticar
+        await userServices.CrearUsuarioAdmin();
+        // Resto de tu código OnInitializedAsync
+    }
+
+    private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/Dashboard");
+    }
+}

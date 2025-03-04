@@ -1,0 +1,384 @@
+﻿@page "/tareas"
+@using DevManager.Data.Request
+@using DevManager.Data.Response
+@attribute [Authorize]
+
+
+
+<div class="row">
+    <div class="text-center">
+        <h3 class="fw-bold">Panel de Tareas</h3>
+    </div>
+
+    <div class="text-center">
+        @if (Projects.Count != 0 )
+        {
+            <AuthorizeView Roles="Admin,Gerente">
+                <button class="btn btn-success mb-3" @onclick="OpenCloseModal">CREAR</button>
+            </AuthorizeView>
+        }
+    </div>
+</div>
+
+<div class="container">
+    <div class="modal" style="display: @(showModal ? "block" : "none"); background-color: rgba(0, 0, 0, 0.5);" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><b>@TituloForm</b></h5>
+                    <button type="button" class="close btn btn-danger fw-bold" @onclick="OpenCloseModal">X</button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group fw-bold">
+                            <label for="taskName">Título de la tarea</label>
+                            <input type="text" id="taskName" @bind="request.TaskName" required class="form-control" disabled="@IsDeveloper">
+                        </div>
+
+                        <div class="form-group fw-bold">
+                            <label for="description">Descripción</label>
+                            <textarea id="description" @bind="request.Description" class="form-control" disabled="@IsDeveloper"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label for="startDate">Fecha de inicio</label>
+                                    <input type="date" id="startDate" @bind="request.StartDate" class="form-control" disabled="@IsDeveloper">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label for="dueDate">Fecha de vencimiento</label>
+                                    <input type="date" id="dueDate" @bind="request.DueDate" class="form-control" disabled="@IsDeveloper">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label>Prioridad</label>
+                                    <select @bind="request.Priority" class="form-control" disabled="@IsDeveloper">
+                                        <option value="Low">Baja</option>
+                                        <option selected value="Normal">Normal</option>
+                                        <option value="High">Alta</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label>Estado</label>
+                                    <select @bind="request.Status" class="form-control">
+                                        <option selected value="Pendiente">Pendiente</option>
+                                        <option value="En Progreso">En Progreso</option>
+                                        <option value="Completada">Completada</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label for="assignedTo">Choose a Project</label>
+                                    <select class="form-select" required @bind="request.ProjectID" disabled="@IsDeveloper">
+                                        @if (Projects.Any())
+                                        {
+                                            <option disabled selected>Selecciona un proyecto</option>
+                                            @foreach (var item in Projects)
+                                            {
+                                                <option value="@item.ProjectID">
+                                                    @item.ProjectName
+                                                </option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option disabled selected>No hay proyectos disponibles</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group fw-bold">
+                                    <label for="assignedTo">Asignado a</label>
+                                    <select class="form-select" required @bind="request.AssignedTo" disabled="@IsDeveloper">
+                                        @if (Users.Any())
+                                        {
+                                            <option disabled selected>Selecciona un usuario</option>
+                                            @foreach (var item in Users)
+                                            {
+                                                <option value="@item.UserID">
+                                                    @item.FirstName @item.LastName
+                                                </option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option disabled selected>No hay usuarios disponibles</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-dark text-white">
+                    <button type="submit" class="btn btn-primary" @onclick="Send">@Create_Update</button>
+                    <button type="button" class="btn btn-secondary" @onclick="OpenCloseModal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Tareas.Count != 0 )
+    {
+        <table class="table table-striped">
+            <thead class="bg-primary text-black fw-bold">
+                <tr>
+                    <th scope="col">Tareas</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Prioridad</th>
+                    <th scope="col">Resp</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Tareas)
+                {
+                    <tr>
+                        <td>@item.TaskName</td>
+                        <td>@item.Status</td>
+                        <td>@item.Priority</td>
+                        <td>
+                            <span>@Users.FirstOrDefault(u => u.UserID == item.AssignedTo)?.FirstName @Users.FirstOrDefault(u => u.UserID == item.AssignedTo)?.LastName</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-warning fw-bold" @onclick="() => Seleccionar(item.TaskID)">EDITAR</button>
+                            <AuthorizeView Roles="Admin,Gerente">
+                                <button class="btn btn-danger fw-bold" @onclick="() => Eliminar(item)">BORRAR</button>
+                            </AuthorizeView>
+                            <button class="btn btn-primary fw-bold" @onclick="() => MostrarDetalles(item)">
+                                DETALLES</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No hay tareas creadas. (<small>Primero crea un <a href="panel_proyectos">proyecto</a> luego sus tareas</small>)</p>
+    }
+</div>
+
+<div class="modal fade @(ShowDetails ? "show d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content shadow-lg rounded-4">
+        
+            <!-- Encabezado -->
+            <div class="modal-header bg-primary text-white rounded-top">
+                <h5 class="modal-title fw-bold">Detalles de la tarea</h5>
+                <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="OpenCloseCard"></button>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="modal-body p-4">
+                @if (SeletedTask != null)
+                {
+                    <div class="mb-3">
+                        <strong>📌 Nombre:</strong> @SeletedTask.TaskName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📝 Descripción:</strong> @SeletedTask.Description
+                    </div>
+                    <div class="mb-3">
+                        <strong>📂 Proyecto:</strong> @SeletedTask.Project.ProjectName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📌 Estado:</strong> 
+                        <span class="badge bg-warning text-dark">@SeletedTask.Status</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>🔥 Prioridad:</strong> 
+                        <span class="badge @(SeletedTask.Priority == "Alta" ? "bg-danger" : (SeletedTask.Priority == "Media" ? "bg-warning text-dark" : "bg-success"))">
+                            @SeletedTask.Priority
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center">
+                        <strong class="me-2">👤 Creador:</strong> 
+                        <span class="badge bg-primary">
+                            @Users.FirstOrDefault(u => u.UserID == SeletedTask.CreatedBy)?.FirstName 
+                            @Users.FirstOrDefault(u => u.UserID == SeletedTask.CreatedBy)?.LastName
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center">
+                        <strong class="me-2">👤 Asignado a:</strong> 
+                        <span class="badge bg-success">
+                            @(SeletedTask.AssignedTo != null ? 
+                                $"{Users.FirstOrDefault(u => u.UserID == SeletedTask.AssignedTo)?.FirstName} {Users.FirstOrDefault(u => u.UserID == SeletedTask.AssignedTo)?.LastName}" : 
+                                "No asignado")
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>📅 Fecha de Inicio:</strong> @SeletedTask.StartDate.ToShortDateString()
+                    </div>
+                    <div class="mb-3">
+                        <strong>🏁 Fecha de Finalización:</strong> @(SeletedTask.DueDate.ToShortDateString() ?? "No definida")
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-muted">No hay detalles disponibles.</p>
+                }
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="modal-footer bg-light rounded-bottom">
+                <button type="button" class="btn btn-secondary" @onclick="OpenCloseCard">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    public string TituloForm => request.TaskID == 0 ? "Agregar tarea" : "Modificar tarea";
+    public string Create_Update => request.TaskID == 0 ? "Crear" : "Actualizar";
+    public bool showModal { get; set; } = false;
+    public bool ShowDetails { get; set; } = false;
+    public string Filtro { get; set; } = "";
+    public List<TareaResponse> Tareas { get; set; } = new();
+    public List<ProjectResponse> Projects { get; set; } = new();
+    public List<UserResponse> Users { get; set; } = new();
+    private TareaResponse? SeletedTask { get; set; }
+    public TareaRequest request { get; set; } = new();
+    
+    public string UserId = "";
+    public string? Role { get; set; } = "";
+    
+    void MostrarDetalles(TareaResponse item)
+    {
+        if (item != null) 
+        {
+            SeletedTask = item;
+            ShowDetails = true;
+            StateHasChanged();
+        }
+    }
+
+    void OpenCloseModal()
+    {
+        showModal = !showModal;
+        StateHasChanged();
+    }
+    void OpenCloseCard()
+    {
+        ShowDetails = !ShowDetails;
+        StateHasChanged();
+    }
+    
+    private bool IsDeveloper;
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInfo();
+        await CargarProyecto();
+        await CargarUsuario();
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+        
+        IsDeveloper = user.IsInRole("Desarrollador");
+        // Verifica si el usuario está autenticado
+        if (user.Identity.IsAuthenticated)
+        {
+            // Extrae los valores de los reclamos y asigna las propiedades
+            UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+            Role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        }
+    }
+
+    void Cancelar()
+    {
+        request = new TareaRequest();
+        OpenCloseModal();
+    }
+    async Task CargarInfo()
+    {
+        var resultado = await tareaServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Tareas = resultado.Datos!;
+        }
+        
+    }
+    async Task CargarProyecto()
+    {
+        var resultado =
+        await projectServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Projects = resultado.Datos!.OrderByDescending(p => p.ProjectID).ToList();
+        }
+    }
+    async Task CargarUsuario()
+    {
+        var resultado =
+        await userServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Users = resultado.Datos!.OrderByDescending(p => p.UserID).ToList();
+        }
+    }
+    void Close()
+    {
+        ShowDetails = false;
+    }
+    public async Task Send()
+    {
+        @* request.Cajero = Cashier; *@
+        if (request.TaskID == 0)
+        {
+            request.CreatedBy = Convert.ToInt32(UserId);
+            //Debo registrar el contacto..
+            var r = await tareaServices.Crear(request);
+            if (r.Exitoso)
+            {
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            //Debo solicitar modificar el contacto...
+            var r = await tareaServices.Modificar(request);
+            if (r.Exitoso)
+            {
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+        }
+    }
+    public async Task Eliminar(TareaResponse user)
+    {
+        var resultado = await tareaServices.Eliminar(user.ToRequest());
+        if (resultado.Exitoso)
+        {
+            await CargarInfo();
+            StateHasChanged();
+        }
+    }
+
+    public void Seleccionar(int Id)
+    {
+        OpenCloseModal();
+        request = Tareas
+        .Where(c => c.TaskID == Id)
+        .Select(c => c.ToRequest())
+        .FirstOrDefault() ?? new TareaRequest();
+    }
+
+}

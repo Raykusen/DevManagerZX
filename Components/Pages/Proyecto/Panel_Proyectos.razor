@@ -1,0 +1,266 @@
+﻿@page "/panel_proyectos"
+@attribute [Authorize]
+@using DevManager.Data.Request
+@using DevManager.Data.Response
+
+
+@*<h3>Panel de Proyectos</h3>*@
+
+<div class="row">
+    <div class="text-center">
+        <h3 class="fw-bold">Panel De Proyectos</h3>
+    </div>
+    <div class="text-center">
+        <AuthorizeView Roles="Admin,Gerente">
+            <button class="btn btn-success mb-3" @onclick="OpenCloseModal">CREAR</button>
+        </AuthorizeView>
+    </div>
+</div>
+
+<!-- Modal -->
+@if (showModal)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">@TituloForm</h5>
+                    <button type="button" class="btn btn-secondary fw-bold" @onclick="Cancelar">
+                        X
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group fw-bold">
+                            <label for="projectName">Nombre del Proyecto</label>
+                            <input type="text" class="form-control" id="projectName" @bind="request.ProjectName" required placeholder="Ingrese el nombre del proyecto" />
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label for="description">Descripción</label>
+                            <textarea class="form-control" id="description" @bind="request.Description" required placeholder="Ingrese la descripción"></textarea>
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label for="startDate">Fecha de Inicio</label>
+                            <input type="date" class="form-control" id="startDate" @bind="request.StartDate" required />
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label for="endDate">Fecha de Finalización</label>
+                            <input type="date" class="form-control" id="endDate" @bind="request.EndDate" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-dark text-white">
+                    <button type="button" class="btn btn-primary" @onclick="Send">@Create_Update</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Agregar fondo opaco -->
+    <div class="modal-backdrop fade show"></div>
+}
+
+
+<div class="container">
+    @if (Proyectos.Count != 0 )
+    {
+        <table class="table table-striped">
+            <thead class="bg-primary">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Proyectos)
+                {
+                    <tr>
+                        <td>@item.ProjectName</td>
+                        <td style="max-width: 240px;">@item.Description</td>
+                        <td>
+                            <AuthorizeView Roles="Admin,Gerente">
+                                <button @onclick="()=>Seleccionar(item.ProjectID)" class="btn btn-warning fw-bold">EDITAR</button>
+                            </AuthorizeView>
+                            <AuthorizeView Roles="Admin">
+                                <button class="btn btn-danger fw-bold" @onclick="() => Eliminar(item)">BORRAR</button>
+                            </AuthorizeView>
+                            <button class="btn btn-primary fw-bold" @onclick="() => MostrarDetalles(item)">
+                                DETALLES</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No hay proyectos creados.</p>
+    }
+</div>
+
+<div class="modal fade @(ShowDetails ? "show d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content shadow-lg rounded-4">
+        
+            <!-- Encabezado -->
+            <div class="modal-header bg-primary text-white rounded-top">
+                <h5 class="modal-title fw-bold">Detalles del Proyecto</h5>
+                <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="OpenCloseCard"></button>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="modal-body p-4">
+                @if (SelectedProject != null)
+                {
+                    <div class="mb-3">
+                        <strong>📌 Nombre:</strong> @SelectedProject.ProjectName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📝 Descripción:</strong> @SelectedProject.Description
+                    </div>
+                    <div class="mb-3">
+                        <strong>👤 Creador:</strong> @SelectedProject.Creator.FirstName @SelectedProject.Creator.LastName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📅 Fecha de Inicio:</strong> @SelectedProject.StartDate.ToShortDateString()
+                    </div>
+                    <div class="mb-3">
+                        <strong>🏁 Fecha de Finalización:</strong> @(SelectedProject.EndDate?.ToShortDateString() ?? "No definida")
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-muted">No hay detalles disponibles.</p>
+                }
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="modal-footer bg-light rounded-bottom">
+                <button type="button" class="btn btn-secondary" @onclick="OpenCloseCard">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+@code {
+    public string TituloForm => request.ProjectID == 0 ?
+    "Agregar proyecto" : "Modificar proyecto";
+    public string Create_Update => request.ProjectID == 0 ? "Crear" : "Actualizar";
+    public bool showModal { get; set; } = false;
+    public bool ShowDetails { get; set; } = false;
+    public string Filtro { get; set; } = "";
+    public List<ProjectResponse> Proyectos { get; set; } = new();
+    private ProjectResponse? SelectedProject { get; set; }
+    public ProjectRequest request { get; set; } = new();
+    
+    public string UserName { get; set; } = "";
+    public string UserId = "";
+    public string Role { get; set; } = "";
+    
+    void MostrarDetalles(ProjectResponse item)
+{
+    if (item != null) 
+    {
+        SelectedProject = item;
+        ShowDetails = true;
+        StateHasChanged();
+    }
+}
+
+    void OpenCloseModal()
+    {
+        showModal = !showModal;
+        StateHasChanged();
+    }
+    void OpenCloseCard()
+    {
+        ShowDetails = !ShowDetails;
+        StateHasChanged();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInfo();
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+        
+        // Verifica si el usuario está autenticado
+        if (user.Identity.IsAuthenticated)
+        {
+            // Extrae los valores de los reclamos y asigna las propiedades
+            Role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            UserName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
+            UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        }
+    }
+
+    void Cancelar()
+    {
+        request = new ProjectRequest();
+        OpenCloseModal();
+    }
+    async Task CargarInfo()
+    {
+        var resultado =
+        await projectServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Proyectos = resultado.Datos!;
+        }
+    }
+    void Close()
+    {
+        ShowDetails = false;
+    }
+    public async Task Send()
+    {
+        @* request.Cajero = Cashier; *@
+        request.CreatedBy = Convert.ToInt32(UserId);
+        if (request.ProjectID == 0)
+        {
+            //Debo registrar el contacto..
+            var r = await projectServices.Crear(request);
+            if (r.Exitoso)
+            {
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            //Debo solicitar modificar el contacto...
+            var r = await projectServices.Modificar(request);
+            if (r.Exitoso)
+            {
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+        }
+    }
+    public async Task Eliminar(ProjectResponse user)
+    {
+        var resultado = await projectServices.Eliminar(user.ToRequest());
+        if (resultado.Exitoso)
+        {
+            await CargarInfo();
+            StateHasChanged();
+        }
+    }
+
+    public void Seleccionar(int Id)
+    {
+        OpenCloseModal();
+        request = Proyectos
+        .Where(c => c.ProjectID == Id)
+        .Select(c => c.ToRequest())
+        .FirstOrDefault() ?? new ProjectRequest();
+    }
+
+}

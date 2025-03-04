@@ -1,0 +1,51 @@
+﻿@inherits LayoutComponentBase
+@using System.Security.Claims
+@using Authentication;
+@inject AuthenticationStateProvider authStateProvider
+
+<div class="page">
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="sidebar bg-dark">
+                <NavMenu />
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <main>
+        <AuthorizeView>
+            <Authorized>
+                <div class="top-row px-4">
+                    <a class="nav-link text-dark fw-bold">
+                        @context.User.FindFirstValue(ClaimTypes.GivenName)
+                    </a>
+                    <a class="nav-link active text-dark fw-bold" href="javascript:void(0)" @onclick="Logout"> 
+                        Log-Out
+                    </a>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+            
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code
+{
+    private async Task Logout()
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(null);
+        NavigationManager.NavigateTo("/", true);
+    }
+}

@@ -1,0 +1,100 @@
+﻿@page "/perfil"
+@using DevManager.Data.Request
+@using DevManager.Data.Response
+@attribute [Authorize]
+
+<h3 class="text-center mt-4 fw-bold">Perfil de Usuario</h3>
+<p class="text-center">Aquí puedes ver y editar tu información personal.</p>
+
+@if (request != null)
+{
+    <div class="container mt-4">
+        <div class="card shadow-sm p-4">
+            <form @onsubmit="Send">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nombre</label>
+                        <input type="text" class="form-control" @bind="request.FirstName" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Apellido</label>
+                        <input type="text" class="form-control" @bind="request.LastName" required />
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Correo Electrónico</label>
+                        <input type="email" class="form-control" @bind="request.Email" required disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Rol</label>
+                        <input type="text" class="form-control" @bind="request.UserRole" disabled />
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Fecha de Creación</label>
+                        <input type="text" class="form-control" value="@request.CreatedAt.ToString("yyyy-MM-dd")" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nueva Contraseña</label>
+                        <input type="password" class="form-control" @bind="request.Password" />
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary me-2">Actualizar</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    <p class="text-center">Cargando información...</p>
+}
+
+@code {
+    public UserRequest request { get; set; } = new();
+    public string UserId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        UserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+
+        await CargarInfo();
+    }
+
+    async Task CargarInfo()
+    {
+        var resultado = await userServices.Consultar("");
+        if (resultado.Exitoso && !string.IsNullOrEmpty(UserId))
+        {
+            var usuarioEncontrado = resultado.Datos!.FirstOrDefault(u => u.UserID.ToString() == UserId);
+            if (usuarioEncontrado != null)
+            {
+                request = usuarioEncontrado.ToRequest();
+            }
+        }
+    }
+
+    public async Task Send()
+    {
+        var r = await userServices.Modificar(request);
+        if (r.Exitoso)
+        {
+            await CargarInfo();
+            StateHasChanged();
+        }
+    }
+
+    void Cancelar()
+    {
+        CargarInfo();
+    }
+}

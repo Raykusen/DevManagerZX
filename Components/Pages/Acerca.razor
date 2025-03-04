@@ -1,0 +1,56 @@
+﻿@page "/acerca"
+
+@* Importante: Asegúrate de que los datos de los desarrolladores sean correctos y estén actualizados *@
+
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4 fw-bold">Acerca de DevManager</h1>
+
+    <div class="card shadow-sm p-4 mb-4">
+        <h2 class="text-primary fw-bold">Sobre el Sistema</h2>
+        <p>
+            <strong>DevManager</strong> es una plataforma diseñada para gestionar proyectos y tareas en entornos de desarrollo de software. 
+            Facilita la organización de equipos, la asignación de responsabilidades y el seguimiento del progreso en cada fase del proyecto.
+        </p>
+        <p>
+            Desarrollado con <strong>Blazor Server</strong>, <strong>.NET 8.0</strong> y <strong>Entity Framework Core</strong>, utiliza una base de datos SQL Server para almacenar la información.
+        </p>
+    </div>
+
+    @* <div class="card shadow-sm p-4">
+        <h2 class="text-primary fw-bold">Desarrolladores</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">Nombre y Apellidos</h5>
+                        <p class="card-text">Líder del proyecto, desarrollador backend y especialista en Entity Framework Core.</p>
+                        <p>Email: <a >username@gmail.com</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">Bronco TECH</h5>
+                    <p class="card-text">Asesoría en el desarrollo web con .NET 8, SQL Server y Entity Framework Core.</p>
+                    <p>Email: <a href="mailto:elbroncotech@hotmail.com">elbroncotech@hotmail.com</a></p>
+                    <p>Sitio Web: <a href="https://marcosdvs.github.io/BroncoTech/">broncotech.com</a></p>
+                </div>
+            </div>
+        </div>
+
+        </div>
+    </div> *@
+
+    <button class="btn btn-primary mt-3 mb-3" @onclick="NavigateToHome">Volver al Inicio</button>
+</div>
+
+@code {
+    private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/Dashboard");
+    }
+}

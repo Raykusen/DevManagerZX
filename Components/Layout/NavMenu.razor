@@ -1,0 +1,49 @@
+﻿@* Sidebar fijo a la izquierda *@
+<div class="d-flex flex-column flex-shrink-0 p-3 bg-dark sidebar">
+    <a href="/" class="navbar-brand d-flex align-items-center mb-3 text-white text-decoration-none">
+        <i class="bi bi-layers fs-3 me-2"></i>
+        <span class="fs-5 fw-bold">DevManager</span>
+    </a>
+    <hr />
+
+    @* Menú después de iniciar sesión *@
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li>
+            <NavLink class="nav-link text-white" href="/Dashboard">
+                <i class="bi bi-house-door"></i> Home
+            </NavLink>
+        </li>
+        <li>
+            <NavLink class="nav-link text-white" href="panel_proyectos">
+                <i class="bi bi-kanban"></i> Panel de Proyectos
+            </NavLink>
+        </li>
+        <li>
+            <NavLink class="nav-link text-white" href="tareas">
+                <i class="bi bi-code-slash"></i> Panel de Tareas
+            </NavLink>
+        </li>
+        <li>
+            <NavLink class="nav-link text-white" href="desarrolladores">
+                <i class="bi bi-code-slash"></i> Desarrolladores
+            </NavLink>
+        </li>
+        <AuthorizeView Roles="Admin,Gerente">
+            <li>
+                <NavLink class="nav-link text-white" href="usuarios">
+                    <i class="bi bi-code-slash"></i> Usuarios
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <li>
+            <NavLink class="nav-link text-white" href="perfil">
+                <i class="bi bi-person-circle"></i> Perfil
+            </NavLink>
+        </li>
+        <li>
+            <NavLink class="nav-link text-white" href="acerca">
+                <i class="bi bi-info-circle"></i> Acerca de
+            </NavLink>
+        </li>
+    </ul>
+</div>

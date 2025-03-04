@@ -1,0 +1,48 @@
+﻿@page "/desarrolladores"
+@attribute [Authorize]
+@using DevManager.Data.Response
+@inject IUserServices UserServices
+
+<h1 class="text-center mt-4 fw-bold text-primary">DESARROLLADORES</h1>
+
+<div class="container mt-4">
+    @if (Desarrolladores.Count == 0)
+    {
+        <p class="text-center text-muted">No hay desarrolladores registrados</p>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var user in Desarrolladores)
+            {
+                <div class="col">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-dark">@user.FirstName @user.LastName</h5>
+                            <p class="card-text text-secondary mb-1"><strong>Rol:</strong> @user.UserRole</p>
+                            <p class="card-text text-muted"><strong>Email:</strong> @user.Email</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public List<UserResponse> Desarrolladores { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInfo();
+    }
+
+    async Task CargarInfo()
+    {
+        var resultado = await UserServices.Consultar("");
+        if (resultado.Exitoso)
+        {
+            Desarrolladores = resultado.Datos!.Where(u => u.UserRole == "Desarrollador" || u.UserRole == "Gerente").ToList();
+        }
+    }
+}

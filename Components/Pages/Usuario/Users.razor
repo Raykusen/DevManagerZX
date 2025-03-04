@@ -1,0 +1,208 @@
+@page "/usuarios"
+@using DevManager.Data.Request
+@using DevManager.Data.Response
+@attribute [Authorize (Roles="Admin,Gerente")]
+
+<div class="row">
+    <div class="text-center">
+        <h3 class="fw-bold">Gestión de Usuarios</h3>
+    </div>
+
+    <div class="text-center">
+        <button class="btn btn-success mb-3" @onclick="OpenCloseForm">CREAR</button>
+    </div>
+</div>
+
+
+<table class="table table-striped">
+    <thead class="bg-primary text-black">
+        <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            @* <th>Activo</th> *@
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Usuarios)
+        {
+            <tr>
+                <td>@user.FirstName @user.LastName</td>
+                <td>@user.Email</td>
+                <td>@user.UserRole</td>
+                @* <td>@(user.IsActive ? "Sí" : "No")</td> *@
+                <td>
+                    <button class="btn btn-warning fw-bold" @onclick="() => Seleccionar(user.UserID)">EDITAR</button>
+                    <AuthorizeView Roles="Admin">
+                        <button class="btn btn-danger fw-bold" @onclick="() => Eliminar(user)">BORRAR</button>
+                    </AuthorizeView>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (ShowForm)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">@TituloForm</h5>
+                    <button type="button" class="btn btn-secondary fw-bold text-white" @onclick="Cancelar">X</button>
+                </div>
+                <form @onsubmit="Send">
+                    <div class="modal-body">
+                        <div class="form-group fw-bold">
+                            <label>Contraseña</label>
+                            <InputText type="password" class="form-control" @bind-Value="request.Password" required disabled="@IsRestricted" />
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label>Nombre</label>
+                            <InputText class="form-control" @bind-Value="request.FirstName" required disabled="@IsRestricted" />
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label>Apellido</label>
+                            <InputText class="form-control" @bind-Value="request.LastName" required disabled="@IsRestricted" />
+                        </div>
+                        <div class="form-group fw-bold">
+                            <label>Email</label>
+                            <InputText type="email" class="form-control" @bind-Value="request.Email" required disabled="@IsRestricted" />
+                        </div>
+
+                        @if(request.UserID == 0)
+                        {
+                            <div class="form-group fw-bold">
+                                <label>Rol</label>
+                                <InputSelect class="form-control" @bind-Value="request.UserRole" aria-required="true">
+                                    <option disabled selected>Seleccione un Rol</option>
+                                    @if (IsAdmin)
+                                    {
+                                        <option value="Admin">Admin</option>
+                                        <option value="Gerente">Gerente</option>
+                                    }
+                                    <option value="Desarrollador">Desarrollador</option>
+                                </InputSelect>
+                            </div>
+                        }
+@* 
+                        <div class="form-group fw-bold form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="request.IsActive" disabled="@IsRestricted" />
+                            <label class="form-check-label">Activo</label>
+                        </div> *@
+                    </div>
+                    <div class="modal-footer bg-dark rounded-bottom">
+                        <button type="submit" class="btn btn-primary" disabled="@IsRestricted">@Create_Update</button>
+                        <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public string TituloForm => request.UserID == 0 ?
+    "Agregar usuario" : "Modificar usuario";
+    public string Create_Update => request.UserID == 0 ? "Crear" : "Actualizar";
+
+    public bool ShowForm { get; set; } = false;
+    public bool ShowDetails { get; set; } = false;
+    public string Filtro { get; set; } = "";
+    public List<UserResponse> Usuarios { get; set; } = new();
+    public UserResponse? SelectedUser { get; set; }
+    public UserRequest request { get; set; } = new();
+    
+    async Task CargarInfo()
+    {
+        var resultado =
+        await userServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Usuarios = resultado.Datos!;
+        }
+    }
+
+    private bool IsAdmin = false;
+    private bool IsRestricted = false;
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInfo();
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        IsAdmin = user.IsInRole("Admin");
+        IsRestricted = request.UserRole == "Admin" && !IsAdmin;
+    }
+
+    void Cancelar()
+    {
+        request = new UserRequest();
+        OpenCloseForm();
+    }
+    void OpenCloseForm()
+    {
+        ShowForm = !ShowForm;
+    }
+    void OpenCloseDeatails()
+    {
+        ShowDetails = !ShowDetails;
+    }
+    public async Task Send()
+    {
+        Console.WriteLine("Send method called");
+        if (request.UserID == 0)
+        {
+            request.CreatedAt = DateTime.Now;
+            Console.WriteLine("Creating new user");
+            var r = await userServices.Crear(request);
+            if (r.Exitoso)
+            {
+                Console.WriteLine("User created successfully");
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("Failed to create user");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Modifying existing user");
+            var r = await userServices.Modificar(request);
+            if (r.Exitoso)
+            {
+                Console.WriteLine("User modified successfully");
+                Cancelar();
+                await CargarInfo();
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("Failed to modify user");
+            }
+        }
+    }
+    public async Task Eliminar(UserResponse user)
+    {
+        var resultado = await userServices.Eliminar(user.ToRequest());
+        if (resultado.Exitoso)
+        {
+            await CargarInfo();
+            StateHasChanged();
+        }
+    }
+
+    public void Seleccionar(int Id)
+    {
+        ShowForm = true;
+        request = Usuarios
+        .Where(c => c.UserID == Id)
+        .Select(c => c.ToRequest())
+        .FirstOrDefault() ?? new UserRequest();
+    }
+}

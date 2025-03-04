@@ -1,0 +1,217 @@
+@page "/Dashboard"
+@using DevManager.Data.Response
+@attribute [Authorize]
+
+
+
+<div class="row">
+    @* <div class="col">
+        <AuthorizeView Roles="Admin,Gerente">
+            <button class="btn btn-success mb-3" @onclick="OpenCloseModal">CREAR</button>
+        </AuthorizeView>
+    </div> *@
+    <div class="text-center">
+        <h2 class="fw-bold">Lista de Tareas</h2>
+    </div>
+</div>
+
+<div class="container">
+    
+    @if (Tareas.Count != 0 )
+    {
+        <table class="table table-striped">
+            <thead class="bg-primary text-black fw-bold">
+                <tr>
+                    <th scope="col">Tareas</th>
+                    <th scope="col">Proyecto</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Prioridad</th>
+                    <th scope="col">Resp</th>
+                    @* <th scope="col">...</th> *@
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Tareas)
+                {
+                    <tr>
+                        <td>@item.TaskName</td>
+                        <td>@item.Project.ProjectName</td>
+                        <td style="max-width: 240px;">@item.Description</td>
+                        <td>@item.Status</td>
+                        <td>@item.Priority</td>
+                        <td>
+                            <span>@Users.FirstOrDefault(u => u.UserID == item.AssignedTo)?.FirstName @Users.FirstOrDefault(u => u.UserID == item.AssignedTo)?.LastName</span>
+                        </td>
+                        @* <td>
+                            <button class="btn btn-primary fw-bold" @onclick="() => MostrarDetalles(item)">
+                                DETALLES</button>
+                        </td> *@
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No hay tareas creadas. (<small>Primero crea un <a href="panel_proyectos">proyecto</a> luego sus tareas</small>)</p>
+    }
+</div>
+
+<div class="modal fade @(ShowDetails ? "show d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content shadow-lg rounded-4">
+        
+            <!-- Encabezado -->
+            <div class="modal-header bg-primary text-white rounded-top">
+                <h5 class="modal-title fw-bold">Detalles de la tarea</h5>
+                <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="OpenCloseCard"></button>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="modal-body p-4">
+                @if (SeletedTask != null)
+                {
+                    <div class="mb-3">
+                        <strong>📌 Nombre:</strong> @SeletedTask.TaskName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📝 Descripción:</strong> @SeletedTask.Description
+                    </div>
+                    <div class="mb-3">
+                        <strong>📂 Proyecto:</strong> @SeletedTask.Project.ProjectName
+                    </div>
+                    <div class="mb-3">
+                        <strong>📌 Estado:</strong> 
+                        <span class="badge bg-warning text-dark">@SeletedTask.Status</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>🔥 Prioridad:</strong> 
+                        <span class="badge @(SeletedTask.Priority == "Alta" ? "bg-danger" : (SeletedTask.Priority == "Media" ? "bg-warning text-dark" : "bg-success"))">
+                            @SeletedTask.Priority
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center">
+                        <strong class="me-2">👤 Creador:</strong> 
+                        <span class="badge bg-primary">
+                            @Users.FirstOrDefault(u => u.UserID == SeletedTask.CreatedBy)?.FirstName 
+                            @Users.FirstOrDefault(u => u.UserID == SeletedTask.CreatedBy)?.LastName
+                        </span>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center">
+                        <strong class="me-2">👤 Asignado a:</strong> 
+                        <span class="badge bg-success">
+                            @(SeletedTask.AssignedTo != null ? 
+                                $"{Users.FirstOrDefault(u => u.UserID == SeletedTask.AssignedTo)?.FirstName} {Users.FirstOrDefault(u => u.UserID == SeletedTask.AssignedTo)?.LastName}" : 
+                                "No asignado")
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>📅 Fecha de Inicio:</strong> @SeletedTask.StartDate.ToShortDateString()
+                    </div>
+                    <div class="mb-3">
+                        <strong>🏁 Fecha de Finalización:</strong> @(SeletedTask.DueDate.ToShortDateString() ?? "No definida")
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-muted">No hay detalles disponibles.</p>
+                }
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="modal-footer bg-light rounded-bottom">
+                <button type="button" class="btn btn-secondary" @onclick="OpenCloseCard">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    public bool showModal { get; set; } = false;
+    public bool ShowDetails { get; set; } = false;
+    public string Filtro { get; set; } = "";
+    public List<TareaResponse> Tareas { get; set; } = new();
+    public List<ProjectResponse> Projects { get; set; } = new();
+    public List<UserResponse> Users { get; set; } = new();
+    private TareaResponse? SeletedTask { get; set; }
+    
+    public string UserId = "";
+    public string? Role { get; set; } = "";
+    
+    void MostrarDetalles(TareaResponse item)
+    {
+        if (item != null) 
+        {
+            SeletedTask = item;
+            ShowDetails = true;
+            StateHasChanged();
+        }
+    }
+
+    void OpenCloseModal()
+    {
+        showModal = !showModal;
+        StateHasChanged();
+    }
+    void OpenCloseCard()
+    {
+        ShowDetails = !ShowDetails;
+        StateHasChanged();
+    }
+    
+    private bool IsDeveloper;
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInfo();
+        await CargarProyecto();
+        await CargarUsuario();
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+        
+        IsDeveloper = user.IsInRole("Desarrollador");
+        // Verifica si el usuario está autenticado
+        if (user.Identity.IsAuthenticated)
+        {
+            // Extrae los valores de los reclamos y asigna las propiedades
+            UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+            Role = user.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        }
+    }
+
+    async Task CargarInfo()
+    {
+        var resultado = await tareaServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Tareas = resultado.Datos!;
+        }
+        
+    }
+    async Task CargarProyecto()
+    {
+        var resultado =
+        await projectServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Projects = resultado.Datos!.OrderByDescending(p => p.ProjectID).ToList();
+        }
+    }
+    async Task CargarUsuario()
+    {
+        var resultado =
+        await userServices.Consultar(Filtro);
+        if (resultado.Exitoso)
+        {
+            Users = resultado.Datos!.OrderByDescending(p => p.UserID).ToList();
+        }
+    }
+    void Close()
+    {
+        ShowDetails = false;
+    }
+
+
+}
